@@ -1,17 +1,17 @@
 package twittervideo
 
 import (
-    // "fmt"
-    "regexp"
-    "strings"
-    "github.com/gocolly/colly"
+	"regexp"
+	"strings"
+	"github.com/gocolly/colly"
 )
 
 type TwitterVideoDownloader struct {
     m3u8_url	 string
 	video_url    string
 	video_url_id string
-    headers      string
+    bearer_token string
+    xguest_token string
 }
 
 func NewTwitterVideoDownloader(url string) *TwitterVideoDownloader {
@@ -21,17 +21,31 @@ func NewTwitterVideoDownloader(url string) *TwitterVideoDownloader {
 }
 
 func (self *TwitterVideoDownloader) GetBearerToken() string {
-    var token string
-
     c := colly.NewCollector()
 
     c.OnResponse(func(r *colly.Response) {
         pattern, _ := regexp.Compile(`"Bearer.*?"`)
-        token       = pattern.FindString(string(r.Body))
-        token       = strings.Trim(token, `"`)
+        self.bearer_token = strings.Trim(pattern.FindString(string(r.Body)), `"`)
     })
 
     c.Visit("https://abs.twimg.com/web-video-player/TwitterVideoPlayerIframe.cefd459559024bfb.js")
 
-    return token
+    return self.bearer_token
+}
+
+func (self *TwitterVideoDownloader) GetXGuestToken() string {
+    c := colly.NewCollector()
+
+    c.OnRequest(func(r *colly.Request) {
+        r.Headers.Set("Authorization", self.bearer_token)
+    })
+
+    c.OnResponse(func(r *colly.Response) {
+        pattern, _ := regexp.Compile(`[0-9]+`)
+        self.xguest_token = pattern.FindString(string(r.Body))
+    })
+
+    c.Post("https://api.twitter.com/1.1/guest/activate.json", nil)
+
+    return self.xguest_token
 }
