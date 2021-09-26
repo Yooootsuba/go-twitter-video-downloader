@@ -1,6 +1,9 @@
 package twittervideo
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"os/exec"
 	"regexp"
 	"strings"
 	"github.com/gocolly/colly"
@@ -48,8 +51,8 @@ func (self *TwitterVideoDownloader) GetXGuestToken() string {
     return self.xguest_token
 }
 
-func (self *TwitterVideoDownloader) GetM3U8ListUrl() string {
-    var m3u8_list_url string
+func (self *TwitterVideoDownloader) GetM3U8Urls() string {
+    var m3u8_urls string
 
     c := colly.NewCollector()
 
@@ -60,7 +63,7 @@ func (self *TwitterVideoDownloader) GetM3U8ListUrl() string {
 
     c.OnResponse(func(r *colly.Response) {
         pattern, _ := regexp.Compile(`https.*m3u8`)
-        m3u8_list_url = pattern.FindString(string(r.Body))
+        m3u8_urls = strings.ReplaceAll(pattern.FindString(string(r.Body)), "\\", "")
     })
 
     url := "https://api.twitter.com/1.1/videos/tweet/config/" +
@@ -69,10 +72,10 @@ func (self *TwitterVideoDownloader) GetM3U8ListUrl() string {
 
     c.Visit(url)
 
-    return m3u8_list_url
+    return m3u8_urls
 }
 
-func (self *TwitterVideoDownloader) GetM3U8Url(m3u8_list_url string) string {
+func (self *TwitterVideoDownloader) GetM3U8Url(m3u8_urls string) string {
     var m3u8_url string
 
     c := colly.NewCollector()
@@ -80,10 +83,23 @@ func (self *TwitterVideoDownloader) GetM3U8Url(m3u8_list_url string) string {
     c.OnResponse(func(r *colly.Response) {
         pattern, _ := regexp.Compile(`.*m3u8`)
         m3u8_urls  := pattern.FindAllString(string(r.Body), -1)
-        m3u8_url    = m3u8_urls[len(m3u8_urls) - 1]
+        m3u8_url    = "https://video.twimg.com" + m3u8_urls[len(m3u8_urls) - 1]
     })
 
-    c.Visit(m3u8_list_url)
+    c.Visit(m3u8_urls)
 
     return m3u8_url
+}
+
+func (self *TwitterVideoDownloader) Download() {
+    self.GetBearerToken()
+    self.GetXGuestToken()
+    m3u8_urls := self.GetM3U8Urls()
+    m3u8_url  := self.GetM3U8Url(m3u8_urls)
+
+    sum       := md5.Sum([]byte(m3u8_url))
+    filename  := hex.EncodeToString(sum[:]) + ".mp4"
+
+    cmd := exec.Command("ffmpeg", "-y", "-i", m3u8_url, "-c", "copy", filename)
+    cmd.Run()
 }
