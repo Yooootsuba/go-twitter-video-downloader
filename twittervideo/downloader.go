@@ -7,9 +7,7 @@ import (
 )
 
 type TwitterVideoDownloader struct {
-    m3u8_url	 string
 	video_url    string
-	video_url_id string
     bearer_token string
     xguest_token string
 }
@@ -48,4 +46,44 @@ func (self *TwitterVideoDownloader) GetXGuestToken() string {
     c.Post("https://api.twitter.com/1.1/guest/activate.json", nil)
 
     return self.xguest_token
+}
+
+func (self *TwitterVideoDownloader) GetM3U8ListUrl() string {
+    var m3u8_list_url string
+
+    c := colly.NewCollector()
+
+    c.OnRequest(func(r *colly.Request) {
+        r.Headers.Set("Authorization", self.bearer_token)
+        r.Headers.Set("x-guest-token", self.xguest_token)
+    })
+
+    c.OnResponse(func(r *colly.Response) {
+        pattern, _ := regexp.Compile(`https.*m3u8`)
+        m3u8_list_url = pattern.FindString(string(r.Body))
+    })
+
+    url := "https://api.twitter.com/1.1/videos/tweet/config/" +
+            strings.TrimPrefix(self.video_url, "https://twitter.com/i/status/") +
+            ".json"
+
+    c.Visit(url)
+
+    return m3u8_list_url
+}
+
+func (self *TwitterVideoDownloader) GetM3U8Url(m3u8_list_url string) string {
+    var m3u8_url string
+
+    c := colly.NewCollector()
+
+    c.OnResponse(func(r *colly.Response) {
+        pattern, _ := regexp.Compile(`.*m3u8`)
+        m3u8_urls  := pattern.FindAllString(string(r.Body), -1)
+        m3u8_url    = m3u8_urls[len(m3u8_urls) - 1]
+    })
+
+    c.Visit(m3u8_list_url)
+
+    return m3u8_url
 }
