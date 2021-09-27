@@ -14,7 +14,7 @@ func main() {
         log.Fatal("Error: FFmpeg is not found !")
     }
 
-	// Input
+    // Input
     var url string
     fmt.Printf("Enter a Twitter video url : ")
     fmt.Scanln(&url)
