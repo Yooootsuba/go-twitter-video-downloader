@@ -1,16 +1,16 @@
 package twittervideo
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"os/exec"
-	"regexp"
-	"strings"
-	"github.com/gocolly/colly"
+    "crypto/md5"
+    "encoding/hex"
+    "os/exec"
+    "regexp"
+    "strings"
+    "github.com/gocolly/colly"
 )
 
 type TwitterVideoDownloader struct {
-	video_url    string
+    video_url    string
     bearer_token string
     xguest_token string
 }
@@ -67,8 +67,8 @@ func (self *TwitterVideoDownloader) GetM3U8Urls() string {
     })
 
     url := "https://api.twitter.com/1.1/videos/tweet/config/" +
-            strings.TrimPrefix(self.video_url, "https://twitter.com/i/status/") +
-            ".json"
+           strings.TrimPrefix(self.video_url, "https://twitter.com/i/status/") +
+           ".json"
 
     c.Visit(url)
 
