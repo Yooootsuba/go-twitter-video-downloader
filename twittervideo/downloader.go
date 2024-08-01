@@ -67,7 +67,7 @@ func (self *TwitterVideoDownloader) GetM3U8Urls() string {
     })
 
     url := "https://api.twitter.com/1.1/videos/tweet/config/" +
-           strings.TrimPrefix(self.video_url, "https://twitter.com/i/status/") +
+           strings.TrimPrefix(self.video_url, "https://x.com/i/status/") +
            ".json"
 
     c.Visit(url)
